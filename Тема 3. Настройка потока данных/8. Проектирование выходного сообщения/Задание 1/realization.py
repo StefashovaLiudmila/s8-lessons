@@ -18,8 +18,8 @@ def spark_init(test_name) -> SparkSession:
         .getOrCreate()
 
 postgresql_settings = {
-    'user': 'student',           # Было master
-    'password': 'de-student'     # Было de-master-password
+    'user': 'student',
+    'password': 'de-student'
 }
 
 def read_marketing(spark: SparkSession) -> DataFrame:
@@ -39,7 +39,7 @@ kafka_security_options = {
 }
 
 def read_client_stream(spark: SparkSession) -> DataFrame:
-    # 🔥 Безопасный импорт TOPIC_NAME (работает и локально, и на сервере)
+    # Безопасный импорт TOPIC_NAME
     try:
         from settings import TOPIC_NAME
     except ImportError:
@@ -78,7 +78,6 @@ def read_client_stream(spark: SparkSession) -> DataFrame:
     return parsed
 
 def join(user_df, marketing_df) -> DataFrame:
-    # ✅ Эта функция уже прошла статическую проверку автотеста!
     return (user_df
             .crossJoin(marketing_df)
             .withColumn("adv_campaign_id", marketing_df.id)
@@ -90,9 +89,7 @@ def join(user_df, marketing_df) -> DataFrame:
             .withColumn("adv_campaign_point_lon", marketing_df.point_lon)
             .withColumn("client_id", f.substring('client_id', 0, 6))
             .withColumn("created_at", f.lit(datetime.now()))
-            .withColumn("offset", user_df.offset)
             .select(
-                "client_id",
                 "adv_campaign_id",
                 "adv_campaign_name",
                 "adv_campaign_description",
@@ -100,8 +97,9 @@ def join(user_df, marketing_df) -> DataFrame:
                 "adv_campaign_end_time",
                 "adv_campaign_point_lat",
                 "adv_campaign_point_lon",
+                "client_id",
                 "created_at",
-                "offset"
+                user_df.offset.alias("offset")  # ← Берём напрямую, без withColumn
             )
     )
 
